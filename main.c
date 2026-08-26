@@ -10,6 +10,10 @@ const int screen_height = 240;
 const int tile_width = 16;
 const int tile_height = 16;
 
+// how many tiles we can see
+const int visible_tiles_x = screen_width / tile_width;
+const int visible_tiles_y = screen_height / tile_height;
+
 // level map
 const char level[] = 
   "................................................................"
@@ -112,22 +116,21 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    // add the velocity to the player position
     player_pos_x += player_vel_x * ((float)framedelay / 1000.0);
     player_pos_y += player_vel_y * ((float)framedelay / 1000.0);
 
+    // player can't go lower than 0
     if (player_pos_x < 0.0) player_pos_x = 0.0;
     if (player_pos_y < 0.0) player_pos_y = 0.0;
 
+    // clamp player pos to map
     if (player_pos_x > (float)(level_width - 1)) player_pos_x = (float)(level_width - 1);
     if (player_pos_y > (float)(level_height - 1)) player_pos_y = (float)(level_height - 1);
 
     // update camera based on player
     camera_pos_x = player_pos_x;
     camera_pos_y = player_pos_y;
-
-    // draw current frame
-    int visible_tiles_x = screen_width / tile_width;
-    int visible_tiles_y = screen_height / tile_height;
 
     // clamp camera into map
     if (camera_pos_x > level_width - visible_tiles_x / 2) camera_pos_x = level_width - visible_tiles_x / 2;
@@ -136,9 +139,13 @@ int main(int argc, char* argv[]) {
     // calculate top left most visible tile
     float offset_x = camera_pos_x - (float)visible_tiles_x / 2.0;
     float offset_y = camera_pos_y - (float)visible_tiles_y / 2.0;
+    
     // clamp to 0
     if (offset_x < 0) offset_x = 0;
-    if (offset_y < 0) offset_y = 0;    
+    if (offset_y < 0) offset_y = 0;
+    // clamp to map
+    if (offset_x >= level_width - visible_tiles_x) offset_x = level_width - visible_tiles_x;
+    if (offset_y >= level_height - visible_tiles_y) offset_y = level_height - visible_tiles_y;    
 
     // get offset into tile for smooth movement
     float tile_offset_x = (offset_x - (int)offset_x) * tile_width;
