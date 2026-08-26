@@ -2,12 +2,15 @@
 #include <SDL/SDL_image.h>
 #include <stdio.h>
 
+// size of screen
 const int screen_width = 320;
 const int screen_height = 240;
 
+// size of tile
 const int tile_width = 16;
 const int tile_height = 16;
 
+// level map
 const char level[] = 
   "................................................................"
   "................................................................"
@@ -26,12 +29,15 @@ const char level[] =
   "............................#................##................."
   "............................##################..................";
 
+// map size
 const int level_width = 64;
 const int level_height = 16;
 
+// store camera pos in map
 float camera_pos_x = 0.0;
 float camera_pos_y = 0.0;
 
+// store player pos and vel
 float player_pos_x = 0.0;
 float player_pos_y = 0.0;
 float player_vel_x = 0.0;
@@ -121,26 +127,52 @@ int main(int argc, char* argv[]) {
     int visible_tiles_x = screen_width / tile_width;
     int visible_tiles_y = screen_height / tile_height;
 
+    // clamp camera into map
     if (camera_pos_x > level_width - visible_tiles_x / 2) camera_pos_x = level_width - visible_tiles_x / 2;
     if (camera_pos_y > level_height - visible_tiles_y / 2) camera_pos_y = level_height - visible_tiles_y / 2;
 
     // calculate top left most visible tile
     float offset_x = camera_pos_x - (float)visible_tiles_x / 2.0;
     float offset_y = camera_pos_y - (float)visible_tiles_y / 2.0;
+    // clamp to 0
+    if (offset_x < 0) offset_x = 0;
+    if (offset_y < 0) offset_y = 0;    
 
     // get offset into tile for smooth movement
     float tile_offset_x = (offset_x - (int)offset_x) * tile_width;
     float tile_offset_y = (offset_y - (int)offset_y) * tile_height;
 
-    if (offset_x < 0) offset_x = 0;
-    if (offset_y < 0) offset_y = 0;
+    int tile_x_is_offset = 0;
+    if (tile_offset_x > 0) tile_x_is_offset = 1;
+    int tile_y_is_offset = 0;
+    if (tile_offset_y > 0) tile_y_is_offset = 1;
 
     SDL_Rect drect = {x:0, y:0, w:tile_width, h:tile_height};
 
-    for (int x=0; x < visible_tiles_x; x++) {
-      for (int y=0; y < visible_tiles_y; y++) {
-	drect.x = x * tile_width;
+    for (int x=0; x < visible_tiles_x + tile_x_is_offset; x++) {
+      for (int y=0; y < visible_tiles_y + tile_y_is_offset; y++) {
+
+	// start row of tile in h direction. could be negative
+	// doesn't work
+	int tile_start_x = x * tile_width - tile_offset_x;
+	if (tile_start_x < 0) tile_start_x = 0;
+	int tile_start_y = y * tile_height - tile_offset_y;
+	if (tile_start_y < 0) tile_start_y = 0;
+	int tile_end_x = (x+1) * tile_width - tile_offset_x;
+	if (tile_end_x > screen_width) tile_end_x = screen_width;
+	int tile_end_y = (y+1) * tile_height - tile_offset_y;
+	if (tile_end_y > screen_height) tile_end_y = screen_height;
+	
+	/*	drect.x = x * tile_width;
 	drect.y = y * tile_height;
+	drect.w = tile_width;
+	drect.h = tile_width; */
+	
+	drect.x = tile_start_x;
+	drect.y = tile_start_y;
+	drect.w = tile_end_x - tile_start_x;
+	drect.h = tile_end_y - tile_start_y;
+	
 	char tile_id = get_tile_at(offset_x + x, offset_y + y);
 	switch (tile_id) {
 	case '.':
@@ -158,6 +190,8 @@ int main(int argc, char* argv[]) {
     // draw player
     drect.x = (player_pos_x - offset_x) * tile_width;
     drect.y = (player_pos_y - offset_y) * tile_height;
+    drect.w = tile_width;
+    drect.h = tile_height;
     SDL_FillRect(screen, &drect, SDL_MapRGB(screen->format, 0x00, 0xFF, 0xFF));
 
     // delay to limit fps
