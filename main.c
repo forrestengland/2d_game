@@ -2,9 +2,11 @@
 #include <SDL/SDL_image.h>
 #include <stdio.h>
 
-const int screen_width = 640;
-const int screen_height = 480;
+const int screen_width = 320;
+const int screen_height = 240;
 
+const int tile_width = 16;
+const int tile_height = 16;
 
 const char level[] = 
   "................................................................"
@@ -23,6 +25,7 @@ const char level[] =
   "............................#..############...##................"
   "............................#................##................."
   "............................##################..................";
+
 const int level_width = 64;
 const int level_height = 16;
 
@@ -115,8 +118,6 @@ int main(int argc, char* argv[]) {
     camera_pos_y = player_pos_y;
 
     // draw current frame
-    int tile_width = 16;
-    int tile_height = 16;
     int visible_tiles_x = screen_width / tile_width;
     int visible_tiles_y = screen_height / tile_height;
 
@@ -126,6 +127,10 @@ int main(int argc, char* argv[]) {
     // calculate top left most visible tile
     float offset_x = camera_pos_x - (float)visible_tiles_x / 2.0;
     float offset_y = camera_pos_y - (float)visible_tiles_y / 2.0;
+
+    // get offset into tile for smooth movement
+    float tile_offset_x = (offset_x - (int)offset_x) * tile_width;
+    float tile_offset_y = (offset_y - (int)offset_y) * tile_height;
 
     if (offset_x < 0) offset_x = 0;
     if (offset_y < 0) offset_y = 0;
