@@ -116,9 +116,56 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    // new player position
     // add the velocity to the player position
-    player_pos_x += player_vel_x * ((float)framedelay / 1000.0);
-    player_pos_y += player_vel_y * ((float)framedelay / 1000.0);
+    float player_new_pos_x = player_pos_x + player_vel_x * ((float)framedelay / 1000.0);
+    float player_new_pos_y = player_pos_y + player_vel_y * ((float)framedelay / 1000.0);
+
+    // check for collision in x direction
+    if (player_vel_x <= 0) { // player moving left or stopped
+      // check top left and bottom left for solid block
+      if (get_tile_at(player_new_pos_x, player_pos_y) != '.' ||
+	  get_tile_at(player_new_pos_x, player_pos_y + 0.9) != '.' ) {
+
+	player_new_pos_x = (int)player_new_pos_x + 1; // correct for collision
+	player_vel_x = 0.0;
+	
+      }
+    } else { // player moving right
+      // check top right and bottom right for solid block
+      if (get_tile_at(player_new_pos_x + 1.0, player_pos_y) != '.' ||
+	  get_tile_at(player_new_pos_x + 1.0, player_pos_y + 0.9) != '.' ) {
+
+	player_new_pos_x = (int)player_new_pos_x; // correct for collision
+	player_vel_x = 0.0;
+	
+      }
+    }
+
+    // check for collision in y direction
+    if (player_vel_y <= 0) { // player moving up or stopped
+      // check top right and top left for solid block
+      if (get_tile_at(player_new_pos_x, player_new_pos_y) != '.' ||
+	  get_tile_at(player_new_pos_x + 0.9, player_new_pos_y) != '.' ) {
+
+	player_new_pos_y = (int)player_new_pos_y + 1; // correct for collision
+	player_vel_y = 0.0;
+	
+      }
+    } else { // player moving down
+      // check bottom left and bottom right for solid block
+      if (get_tile_at(player_new_pos_x, player_new_pos_y + 1.0) != '.' ||
+	  get_tile_at(player_new_pos_x + 0.9, player_new_pos_y + 1.0) != '.' ) {
+
+	player_new_pos_y = (int)player_new_pos_y; // correct for collision
+	player_vel_y = 0.0;
+	
+      }
+    }
+
+    // set player position to new position corrected for collisions
+    player_pos_x = player_new_pos_x;
+    player_pos_y = player_new_pos_y;
 
     // player can't go lower than 0
     if (player_pos_x < 0.0) player_pos_x = 0.0;
