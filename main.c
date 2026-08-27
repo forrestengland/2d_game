@@ -1,6 +1,7 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <stdio.h>
+#include <math.h>
 
 // size of screen
 const int screen_width = 320;
@@ -48,6 +49,8 @@ float player_pos_x = 0.0;
 float player_pos_y = 0.0;
 float player_vel_x = 0.0;
 float player_vel_y = 0.0;
+
+int player_on_ground = 0;
 
 char get_tile_at(int x, int y) {
   if (x >= 0 && x < level_width && y >= 0 && y < level_height) {
@@ -102,7 +105,7 @@ int main(int argc, char* argv[]) {
 	  left_pressed = 1;
 	} else if (event.key.keysym.sym == SDLK_RIGHT) {
 	  right_pressed = 1;
-	} else if (event.key.keysym.sym == SDLK_SPACE) {
+	} else if (event.key.keysym.sym == SDLK_SPACE) { // jump
 	  if (player_vel_y == 0) {
 	    player_vel_y = -12.0f;
 	  }
@@ -121,17 +124,25 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    if (up_pressed) {
+    /*    if (up_pressed) {
       player_vel_y = -6.0;
     }
     if (down_pressed) {
       player_vel_y = 6.0;
-    }
+      } */
     if (left_pressed) {
-      player_vel_x += -6.0;
+      if (player_on_ground) {
+	player_vel_x += -1.0;
+      } else {
+	player_vel_x += -0.5;
+      }
     }
     if (right_pressed) {
-      player_vel_x += 6.0;
+      if (player_on_ground) {
+	player_vel_x += 1.0;
+      } else {
+	player_vel_x += 0.5;
+      }
     }
 
     // get elapsed time between frames
@@ -139,6 +150,13 @@ int main(int argc, char* argv[]) {
 
     // add gravity
     player_vel_y += 20.0 * elapsed;
+
+    // drag if on ground
+    if (player_on_ground) {
+      player_vel_x += -3.0 * player_vel_x * elapsed;
+      // clamp velocity to zero if close so we can stop
+      if (fabs(player_vel_x) < 0.01) player_vel_x = 0.0;
+    }
 
     // clamp velocities
     if (player_vel_x > 10.0) player_vel_x = 10.0;
@@ -173,6 +191,7 @@ int main(int argc, char* argv[]) {
     }
 
     // check for collision in y direction
+    player_on_ground = 0;
     if (player_vel_y <= 0) { // player moving up or stopped
       // check top right and top left for solid block
       if (get_tile_at(player_new_pos_x, player_new_pos_y) != '.' ||
@@ -189,7 +208,8 @@ int main(int argc, char* argv[]) {
 
 	player_new_pos_y = (int)player_new_pos_y; // correct for collision
 	player_vel_y = 0.0;
-	
+
+	player_on_ground = 1;
       }
     }
 

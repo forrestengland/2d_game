@@ -1,1 +1,1 @@
-gcc -o sdl1test main.c -lSDL -lSDL_image --std=gnu99
+gcc -o sdl1test main.c -lSDL -lSDL_image -lm --std=gnu99
