@@ -79,6 +79,7 @@ int main(int argc, char* argv[]) {
   const int framedelay = 1000 / fps;
   Uint32 framestart;
   int frametime;
+  int up_pressed=0, down_pressed=0, left_pressed=0, right_pressed = 0;
 
   while (running) {
 
@@ -94,26 +95,43 @@ int main(int argc, char* argv[]) {
 	if (event.key.keysym.sym == SDLK_ESCAPE) {
 	  running = 0;
 	} else if (event.key.keysym.sym == SDLK_UP) {
-	  player_vel_y = -6.0;
+	  up_pressed = 1;
 	} else if (event.key.keysym.sym == SDLK_DOWN) {
-	  player_vel_y = 6.0;
+	  down_pressed = 1;
 	} else if (event.key.keysym.sym == SDLK_LEFT) {
-	  player_vel_x = -6.0;
+	  left_pressed = 1;
 	} else if (event.key.keysym.sym == SDLK_RIGHT) {
-	  player_vel_x = 6.0;
+	  right_pressed = 1;
+	} else if (event.key.keysym.sym == SDLK_SPACE) {
+	  if (player_vel_y == 0) {
+	    player_vel_y = -12.0f;
+	  }
 	}
       }
       if (event.type == SDL_KEYUP) {
 	if (event.key.keysym.sym == SDLK_UP) {
-	  player_vel_y = 0.0;
+	  up_pressed = 0;
 	} else if (event.key.keysym.sym == SDLK_DOWN) {
-	  player_vel_y = 0.0;
+	  down_pressed = 0;
 	} else if (event.key.keysym.sym == SDLK_LEFT) {
-	  player_vel_x = 0.0;
+	  left_pressed = 0;
 	} else if (event.key.keysym.sym == SDLK_RIGHT) {
-	  player_vel_x = 0.0;
+	  right_pressed = 0;
 	}
       }
+    }
+
+    if (up_pressed) {
+      player_vel_y = -6.0;
+    }
+    if (down_pressed) {
+      player_vel_y = 6.0;
+    }
+    if (left_pressed) {
+      player_vel_x += -6.0;
+    }
+    if (right_pressed) {
+      player_vel_x += 6.0;
     }
 
     // get elapsed time between frames
