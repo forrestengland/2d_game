@@ -116,10 +116,22 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    // get elapsed time between frames
+    float elapsed = (float)framedelay / 1000.0;
+
+    // add gravity
+    player_vel_y += 20.0 * elapsed;
+
+    // clamp velocities
+    if (player_vel_x > 10.0) player_vel_x = 10.0;
+    if (player_vel_x < -10.0) player_vel_x = -10.0;
+    if (player_vel_y > 10.0) player_vel_y = 10.0;
+    if (player_vel_y < -10.0) player_vel_y = -10.0;
+    
     // new player position
     // add the velocity to the player position
-    float player_new_pos_x = player_pos_x + player_vel_x * ((float)framedelay / 1000.0);
-    float player_new_pos_y = player_pos_y + player_vel_y * ((float)framedelay / 1000.0);
+    float player_new_pos_x = player_pos_x + player_vel_x * elapsed;
+    float player_new_pos_y = player_pos_y + player_vel_y * elapsed;
 
     // check for collision in x direction
     if (player_vel_x <= 0) { // player moving left or stopped
