@@ -6,6 +6,7 @@
 // size of screen
 const int screen_width = 320;
 const int screen_height = 240;
+#define SCREEN_MAG 2
 
 // size of tile
 const int tile_width = 16;
@@ -49,6 +50,7 @@ float player_pos_x = 0.0;
 float player_pos_y = 0.0;
 float player_vel_x = 0.0;
 float player_vel_y = 0.0;
+float player_looking_left = 0;
 
 int player_on_ground = 0;
 
@@ -60,6 +62,60 @@ char get_tile_at(int x, int y) {
   }
 }
 
+SDL_Surface* flipSurfaceHorizontal(SDL_Surface* source) {
+    if (!source) return NULL;
+
+    // 1. Create a blank surface with the exact same dimensions and pixel format
+    SDL_Surface* flipped = SDL_CreateRGBSurface(
+        source->flags, 
+        source->w, source->h, 
+        source->format->BitsPerPixel,
+        source->format->Rmask, source->format->Gmask, 
+        source->format->Bmask, source->format->Amask
+    );
+
+    if (!flipped) return NULL;
+
+    // 2. Lock surfaces if required by the hardware memory
+    if (SDL_MUSTLOCK(source)) SDL_LockSurface(source);
+    if (SDL_MUSTLOCK(flipped)) SDL_LockSurface(flipped);
+
+    // 3. Perform the row-by-row pixel mirroring
+    // We treat the pixels as 32-bit integers (Uint32) since you are using PNGs with alpha
+    Uint32* srcPixels = (Uint32*)source->pixels;
+    Uint32* destPixels = (Uint32*)flipped->pixels;
+
+    int width = source->w;
+    int height = source->h;
+    
+    // SDL_Surface 'pitch' is the length of a row in bytes. 
+    // Dividing by 4 gives us the row length measured in 32-bit integers (Uint32)
+    int srcPitch = source->pitch / 4;
+    int destPitch = flipped->pitch / 4;
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            // Read from left-to-right on the source row
+            Uint32 pixel = srcPixels[y * srcPitch + x];
+            
+            // Write from right-to-left on the destination row
+            destPixels[y * destPitch + (width - 1 - x)] = pixel;
+        }
+    }
+
+    // 4. Unlock memory surfaces
+    if (SDL_MUSTLOCK(flipped)) SDL_UnlockSurface(flipped);
+    if (SDL_MUSTLOCK(source)) SDL_UnlockSurface(source);
+
+    // 5. Explicitly pass over transparency flags to the new surface
+    if (source->flags & SDL_SRCALPHA) {
+        SDL_SetAlpha(flipped, SDL_SRCALPHA, source->format->alpha);
+    }
+
+    return flipped;
+}
+
+
 int main(int argc, char* argv[]) {
 
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -67,11 +123,27 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  SDL_Surface* screen = SDL_SetVideoMode(screen_width, screen_height, 32, SDL_SWSURFACE);
+  SDL_Surface* screen = SDL_SetVideoMode(screen_width * SCREEN_MAG, screen_height * SCREEN_MAG, 32, SDL_SWSURFACE);
   if (screen == NULL) {
     printf("window could not be created\n");
     return  1;
   }
+
+  SDL_Surface* virtualScreen = SDL_CreateRGBSurface(SDL_SWSURFACE, screen_width, screen_height,
+						    32, screen->format->Rmask,
+						    screen->format->Gmask,
+						    screen->format->Bmask,
+						    screen->format->Amask);
+
+  SDL_Surface* loadedImage = IMG_Load("player.png");
+  if (!loadedImage) {
+    printf("unable to load image\n");
+    SDL_Quit();
+    return 1;
+  }
+  SDL_Surface* optimizedImage = SDL_DisplayFormatAlpha(loadedImage);
+  SDL_FreeSurface(loadedImage);
+  SDL_Surface* flippedImage = flipSurfaceHorizontal(optimizedImage);
 
   int update = 1;
 
@@ -86,7 +158,7 @@ int main(int argc, char* argv[]) {
 
   while (running) {
 
-    SDL_FillRect(screen, &screen->clip_rect, SDL_MapRGB(screen->format, 0xFF, 0x00, 0x00));
+    SDL_FillRect(virtualScreen, &virtualScreen->clip_rect, SDL_MapRGB(virtualScreen->format, 0xFF, 0x00, 0x00));
 
     framestart = SDL_GetTicks();
 
@@ -103,7 +175,9 @@ int main(int argc, char* argv[]) {
 	  down_pressed = 1;
 	} else if (event.key.keysym.sym == SDLK_LEFT) {
 	  left_pressed = 1;
+	  player_looking_left = 1;
 	} else if (event.key.keysym.sym == SDLK_RIGHT) {
+	  player_looking_left = 0;
 	  right_pressed = 1;
 	} else if (event.key.keysym.sym == SDLK_SPACE) { // jump
 	  if (player_vel_y == 0) {
@@ -282,10 +356,10 @@ int main(int argc, char* argv[]) {
 	char tile_id = get_tile_at(offset_x + x, offset_y + y);
 	switch (tile_id) {
 	case '.':
-	  SDL_FillRect(screen, &drect, SDL_MapRGB(screen->format, 0x00, 0xFF, 0x00));
+	  SDL_FillRect(virtualScreen, &drect, SDL_MapRGB(virtualScreen->format, 0x00, 0xFF, 0x00));
 	  break;
 	case '#':
-	  SDL_FillRect(screen, &drect, SDL_MapRGB(screen->format, 0x00, 0x00, 0xFF));
+	  SDL_FillRect(virtualScreen, &drect, SDL_MapRGB(virtualScreen->format, 0x00, 0x00, 0xFF));
 	  break;
 	default:
 	  break;
@@ -298,7 +372,14 @@ int main(int argc, char* argv[]) {
     drect.y = (player_pos_y - offset_y) * tile_height;
     drect.w = tile_width;
     drect.h = tile_height;
-    SDL_FillRect(screen, &drect, SDL_MapRGB(screen->format, 0x00, 0xFF, 0xFF));
+    //    SDL_FillRect(screen, &drect, SDL_MapRGB(screen->format, 0x00, 0xFF, 0xFF));
+    if (player_looking_left) {
+      SDL_BlitSurface(optimizedImage, NULL, virtualScreen, &drect);
+    } else {
+      SDL_BlitSurface(flippedImage, NULL, virtualScreen, &drect);
+    }
+
+    SDL_SoftStretch(virtualScreen, NULL, screen, NULL);
 
     // delay to limit fps
     frametime = SDL_GetTicks() - framestart;
