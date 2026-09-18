@@ -6,7 +6,9 @@
 // size of screen
 const int screen_width = 320;
 const int screen_height = 240;
-#define SCREEN_MAG 2
+#define SCREEN_MAG 4
+
+#define DRAG_AMT -5.0f
 
 // size of tile
 const int tile_width = 16;
@@ -22,10 +24,10 @@ const char level[] =
   "................................................................"
   "................................................................"
   "................................................................"
-  ".......#.............................#..#......................."
-  "...................#########...................................."
-  "..................##.................#..#......................."
-  ".................##............................................."
+  ".......#........................................................"
+  "...................#########..........##........................"
+  "..................##.................####......................."
+  ".................##.................######......................"
   "................##.............................................."
   "#########################################.######...#############"
   "........................................#.#......##............."
@@ -145,6 +147,15 @@ int main(int argc, char* argv[]) {
   SDL_FreeSurface(loadedImage);
   SDL_Surface* flippedImage = flipSurfaceHorizontal(optimizedImage);
 
+  SDL_Surface* loadedBlockImage = IMG_Load("block.png");
+  if (!loadedBlockImage) {
+    printf("unable to load block image\n");
+    SDL_Quit();
+    return 1;
+  }
+  SDL_Surface* optimizedBlockImage = SDL_DisplayFormatAlpha(loadedBlockImage);
+  SDL_FreeSurface(loadedBlockImage);
+
   int update = 1;
 
   SDL_Event event;
@@ -158,7 +169,7 @@ int main(int argc, char* argv[]) {
 
   while (running) {
 
-    SDL_FillRect(virtualScreen, &virtualScreen->clip_rect, SDL_MapRGB(virtualScreen->format, 0xFF, 0x00, 0x00));
+    SDL_FillRect(virtualScreen, &virtualScreen->clip_rect, SDL_MapRGB(virtualScreen->format, 0xFF, 0xFF, 0xFF));
 
     framestart = SDL_GetTicks();
 
@@ -227,7 +238,7 @@ int main(int argc, char* argv[]) {
 
     // drag if on ground
     if (player_on_ground) {
-      player_vel_x += -3.0 * player_vel_x * elapsed;
+      player_vel_x += DRAG_AMT * player_vel_x * elapsed;
       // clamp velocity to zero if close so we can stop
       if (fabs(player_vel_x) < 0.01) player_vel_x = 0.0;
     }
@@ -356,10 +367,12 @@ int main(int argc, char* argv[]) {
 	char tile_id = get_tile_at(offset_x + x, offset_y + y);
 	switch (tile_id) {
 	case '.':
-	  SDL_FillRect(virtualScreen, &drect, SDL_MapRGB(virtualScreen->format, 0x00, 0xFF, 0x00));
+	  //	  SDL_FillRect(virtualScreen, &drect, SDL_MapRGB(virtualScreen->format, 0x00, 0xFF, 0x00));
 	  break;
 	case '#':
-	  SDL_FillRect(virtualScreen, &drect, SDL_MapRGB(virtualScreen->format, 0x00, 0x00, 0xFF));
+	  //	  SDL_FillRect(virtualScreen, &drect, SDL_MapRGB(virtualScreen->format, 0x00, 0x00, 0xFF));
+	  SDL_Rect srect = {x: tile_width - drect.w, y: tile_height - drect.h, w: drect.w, h: drect.h};
+	  SDL_BlitSurface(optimizedBlockImage, &srect, virtualScreen, &drect);
 	  break;
 	default:
 	  break;
