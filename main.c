@@ -4,8 +4,10 @@
 #include <math.h>
 
 // size of screen
-const int screen_width = 320;
-const int screen_height = 240;
+// const int screen_width = 320;
+// const int screen_height = 240;
+const int screen_width = 128;
+const int screen_height = 128;
 #define SCREEN_MAG 4
 
 #define DRAG_AMT -5.0f
@@ -125,7 +127,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  SDL_Surface* screen = SDL_SetVideoMode(screen_width * SCREEN_MAG, screen_height * SCREEN_MAG, 32, SDL_SWSURFACE);
+  SDL_Surface* screen = SDL_SetVideoMode(screen_width * SCREEN_MAG, screen_height * SCREEN_MAG, 32,
+					 SDL_SWSURFACE);
   if (screen == NULL) {
     printf("window could not be created\n");
     return  1;
@@ -209,12 +212,6 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    /*    if (up_pressed) {
-      player_vel_y = -6.0;
-    }
-    if (down_pressed) {
-      player_vel_y = 6.0;
-      } */
     if (left_pressed) {
       if (player_on_ground) {
 	player_vel_x += -1.0;
@@ -343,40 +340,40 @@ int main(int argc, char* argv[]) {
     for (int x=0; x < visible_tiles_x + tile_x_is_offset; x++) {
       for (int y=0; y < visible_tiles_y + tile_y_is_offset; y++) {
 
-	// start row of tile in h direction. could be negative
-	// doesn't work
-	int tile_start_x = x * tile_width - tile_offset_x;
-	if (tile_start_x < 0) tile_start_x = 0;
-	int tile_start_y = y * tile_height - tile_offset_y;
-	if (tile_start_y < 0) tile_start_y = 0;
-	int tile_end_x = (x+1) * tile_width - tile_offset_x;
-	if (tile_end_x > screen_width) tile_end_x = screen_width;
-	int tile_end_y = (y+1) * tile_height - tile_offset_y;
-	if (tile_end_y > screen_height) tile_end_y = screen_height;
 	
-	/*	drect.x = x * tile_width;
-	drect.y = y * tile_height;
-	drect.w = tile_width;
-	drect.h = tile_width; */
-	
-	drect.x = tile_start_x;
-	drect.y = tile_start_y;
-	drect.w = tile_end_x - tile_start_x;
-	drect.h = tile_end_y - tile_start_y;
-	
-	char tile_id = get_tile_at(offset_x + x, offset_y + y);
-	switch (tile_id) {
-	case '.':
-	  //	  SDL_FillRect(virtualScreen, &drect, SDL_MapRGB(virtualScreen->format, 0x00, 0xFF, 0x00));
-	  break;
-	case '#':
-	  //	  SDL_FillRect(virtualScreen, &drect, SDL_MapRGB(virtualScreen->format, 0x00, 0x00, 0xFF));
-	  SDL_Rect srect = {x: tile_width - drect.w, y: tile_height - drect.h, w: drect.w, h: drect.h};
-	  SDL_BlitSurface(optimizedBlockImage, &srect, virtualScreen, &drect);
-	  break;
-	default:
-	  break;
-	}
+        // Destination position of this tile on screen
+        int tile_start_x = x * tile_width - (int)tile_offset_x;
+        int tile_start_y = y * tile_height - (int)tile_offset_y;
+        int tile_end_x = (x + 1) * tile_width - (int)tile_offset_x;
+        int tile_end_y = (y + 1) * tile_height - (int)tile_offset_y;
+
+        // Clip destination rectangle to screen bounds
+        if (tile_start_x < 0) tile_start_x = 0;
+        if (tile_start_y < 0) tile_start_y = 0;
+        if (tile_end_x > screen_width) tile_end_x = screen_width;
+        if (tile_end_y > screen_height) tile_end_y = screen_height;
+
+        drect.x = tile_start_x;
+        drect.y = tile_start_y;
+        drect.w = tile_end_x - tile_start_x;
+        drect.h = tile_end_y - tile_start_y;
+
+        // Source rectangle must account for clipping on the left/top
+        SDL_Rect srect = {
+            (int)tile_offset_x > x * tile_width
+                ? (int)tile_offset_x - x * tile_width : 0,
+            (int)tile_offset_y > y * tile_height
+                ? (int)tile_offset_y - y * tile_height : 0,
+            drect.w,
+            drect.h
+        };
+
+        char tile_id = get_tile_at((int)offset_x + x, (int)offset_y + y);
+
+        if (tile_id == '#') {
+            SDL_BlitSurface(optimizedBlockImage, &srect,
+                            virtualScreen, &drect);
+        }
       }
     }
 
@@ -385,7 +382,7 @@ int main(int argc, char* argv[]) {
     drect.y = (player_pos_y - offset_y) * tile_height;
     drect.w = tile_width;
     drect.h = tile_height;
-    //    SDL_FillRect(screen, &drect, SDL_MapRGB(screen->format, 0x00, 0xFF, 0xFF));
+
     if (player_looking_left) {
       SDL_BlitSurface(optimizedImage, NULL, virtualScreen, &drect);
     } else {
